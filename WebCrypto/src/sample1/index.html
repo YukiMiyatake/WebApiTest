@@ -3,267 +3,17 @@
 <html lang="en" xmlns="http://www.w3.org/1999/xhtml">
 <head>
     <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/css/bootstrap.min.css" integrity="sha384-GJzZqFGwb1QTTN6wy59ffF1BuGJpLSa9DkKMp0DgiMDm4iYMj70gZWKYbI706tWS" crossorigin="anonymous">
+  
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js" integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy" crossorigin="anonymous"></script>
     <title>Sample1</title>
 
+    <script lang="text/javascript" src="cryp.js" />
     
     <script lang="text/javascript">
-
-    let crypto = window.crypto;
-    let subtle = crypto.subtle;
-    const signAlg = "RSASSA-PKCS1-v1_5";
-    const hashAlg = "SHA-256";
-
-    function formatPEM(pemString)
-{
-	const stringLength = pemString.length;
-	let resultString = "";
-	
-	for(let i = 0, count = 0; i < stringLength; i++, count++)
-	{
-		if(count > 63)
-		{
-			resultString = `${resultString}\r\n`;
-			count = 0;
-		}
-		
-		resultString += pemString[i];
-	}
-	
-	return resultString;
-}
-
-    function ab2str(buf) {
-        return String.fromCharCode.apply(null, new Uint8Array(buf));
-    }
-
-    function str2ab(str) {
-        const buf = new ArrayBuffer(str.length);
-        const bufView = new Uint8Array(buf);
-        for (let i = 0, strLen = str.length; i < strLen; i++) {
-            bufView[i] = str.charCodeAt(i);
-         }
-        return buf;
-    }
-
-    // 改行などいれてない嘘PEM
-    function exportPrivateKey(key) {
-    return (subtle.exportKey(
-        "pkcs8",
-        key
-    ).then((pkcs8) =>{
-        const pkcs8str = ab2str(pkcs8);
-        const base64 = btoa(pkcs8str);
-        const pem = `-----BEGIN PRIVATE KEY-----\n${base64}\n-----END PRIVATE KEY-----`;
-
-        return(pem);
-    } ));
-    }
-
-    function exportPublicKey(key) {
-    return (subtle.exportKey(
-        "spki",
-        key
-    ).then((pkcs8) =>{
-        const pkcs8str = ab2str(pkcs8);
-        const base64 = btoa(pkcs8str);
-        const pem = `-----BEGIN PUBLIC KEY-----\n${base64}\n-----END PUBLIC KEY-----`;
-
-        return(pem);
-    } ));
-    }
-
-    function importPrivateKey(pem) {
-        // fetch the part of the PEM string between header and footer
-        const pemHeader = "-----BEGIN PRIVATE KEY-----\n";
-        const pemFooter = "\n-----END PRIVATE KEY-----";
-        const pemContents = pem.substring(pemHeader.length, pem.length - pemFooter.length);
-
-        // base64 decode the string to get the binary data
-        const binaryDerString = atob(pemContents);
-        // convert from a binary string to an ArrayBuffer
-        const binaryDer = str2ab(binaryDerString);
-
-        return subtle.importKey(
-            "pkcs8",
-            binaryDer,
-            {
-                name: signAlg,
-                // Consider using a 4096-bit key for systems that require long-term security
-                modulusLength: 2048,
-                publicExponent: new Uint8Array([1, 0, 1]),
-                hash: {
-                    name: hashAlg
-                }
-            },
-            true,
-            ["sign"]
-        );
-    }
-
-    function importPublicKey(pem) {
-    // fetch the part of the PEM string between header and footer
-    const pemHeader = "-----BEGIN PUBLIC KEY-----\n";
-    const pemFooter = "\n-----END PUBLIC KEY-----";
-    const pemContents = pem.substring(pemHeader.length, pem.length - pemFooter.length);
-
-        console.log(pemContents);
-
-    // base64 decode the string to get the binary data
-    const binaryDerString = atob(pemContents);
-    // convert from a binary string to an ArrayBuffer
-    const binaryDer = str2ab(binaryDerString);
-
-    return subtle.importKey(
-        "spki",
-        binaryDer,
-        {
-        name: signAlg,
-        // Consider using a 4096-bit key for systems that require long-term security
-        modulusLength: 2048,
-        publicExponent: new Uint8Array([1, 0, 1]),
-        hash: {
-            name: hashAlg
-        }
-        },
-        true,
-        ["verify"]
-    );
-    }
-
-
-//*********************************************************************************
-// Create Private/Public Key and save WebStorage
-//*********************************************************************************
-function createCryptoKeys(){
-	createCryptoKeysAsync().then();
-}
-
-function createCryptoKeysAsync(){
-	let sequence = Promise.resolve();
-	//let keyPair;
-
-	sequence = sequence.then(() =>
-	{
-        let algorithm = {
-                name: signAlg,
-                modulusLength: 2048,
-                publicExponent: new Uint8Array([0x01, 0x00, 0x01]),
-                hash: {
-                    name: hashAlg
-                }
-            };
-            
-            let sequence = Promise.resolve();
-            return subtle.generateKey(algorithm, true,  ["sign", "verify"]);
-	});
-	//endregion
-
-/*
-	//region Store new key in an interim variables
-	sequence = sequence.then(k =>
-	{
-		let keyPair = k;
-		let privateKey;
-		let publicKey;
-
-		exportPrivateKey(keyPair.privateKey)
-			.then( pem =>{
-				console.log("save key");
-				console.log( "privateKey: "  + pem );
-				privateKey = pem;
-			})
-			.then( () =>{
-				exportPublicKey(keyPair.publicKey).then( pem =>{
-					console.log( "publicKey: "  + pem );
-					publicKey = pem;
-			})
-			.then( () => {
-				console.log("store WebStorage key");
-				console.log(JSON.stringify({privateKey:privateKey, publicKey:publicKey }));
-
-				const keyPairString = JSON.stringify({privateKey:privateKey, publicKey:publicKey});
-				localStorage.setItem(CRYPTO_STORAGE_KEY, keyPairString);
-			});
-		})
-
-
-
-
-
-
-	},
-	error => Promise.reject((`Error during key generation: ${error}`))
-	)
-
-
-//*/
-//*
-    let publicKey;
-    let publicPem;
-	//region Store new key in an interim variables
-	sequence = sequence.then(keyPair =>
-	{
-        publicKey = keyPair.publicKey;
-
-		return Promise.all([
-			new Promise( resolve =>{
-				exportPrivateKey(keyPair.privateKey).then( pem =>{
-					// store WebStorage
-//					localStorage.setItem(CRYPTO_STORAGE_KEY, pem);
-
-					console.log("save key");
-					console.log( "privateKey: "  + pem );
-					resolve(pem);
-				} );
-			}),
-			new Promise( resolve =>{
-				exportPublicKey(keyPair.publicKey).then( pem =>{
-                    publicPem = pem;
-					console.log("save key");
-					console.log( "publicKey: "  + pem );
-					resolve(pem);
-				} );
-			})
-		])
-	},
-	error => Promise.reject((`Error during key generation: ${error}`))
-	)
-
-	sequence = sequence.then( values =>{
-		console.log("store WebStorage key");
-		console.log(JSON.stringify({privateKey:values[0] , publicKey:values[1]}));
-
-		//const keyPairString = JSON.stringify({privateKey:values[0] , publicKey:values[1]});
-		//localStorage.setItem(CRYPTO_STORAGE_KEY, keyPairString);
-	});
-//*/
-
-
-    sequence = sequence
-    .then( () =>{
-        importPublicKey(publicPem)
-    .then( pubKey => {
-        exportPublicKey(pubKey)
-    .then( pem => {
-        console.log( "publicKey: "  + pem );
-
-    }); }); });
-
-
-
-
-/*
-	sequence = sequence.then(() => {
-		// store WebStorage
-		console.log("store WebStorage key");
-		console.log(JSON.stringify({privateKey:values[0] , publicKey:values[1]}));
-
-		const keyPairString = JSON.stringify({privateKey:values[0] , publicKey:values[1]});
-		localStorage.setItem(CRYPTO_STORAGE_KEY, keyPairString);
-	});
-*/
-	return(sequence);
-}
 
 
     </script>
@@ -271,10 +21,10 @@ function createCryptoKeysAsync(){
 </head>
 
 <body>
-    <div>
+    <div class="container">
         <label >key</label><br>
         <textarea id="pem-text" cols="70" rows="10"></textarea><br>
-        <a href="#" onclick="createCryptoKeys();">Create</a>
+        <button type="button" onclick="createCryptoKeys();" class="btn btn-primary">Create</button>
     </div>
 </body>
 </html>
