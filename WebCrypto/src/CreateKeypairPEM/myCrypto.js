@@ -24,7 +24,7 @@ function createCryptoKeys() {
       error => Promise.reject((`Error during generateKey: ${error}`))
     )
     
-    // PublicKeyとPrivateKeyのExportは並列で出来る
+    // PublicKeyとPrivateKeyのExportは並列実行出来る
     .then(keyPair => {      
       return Promise.all([
         // Private Key
@@ -35,7 +35,6 @@ function createCryptoKeys() {
               "pkcs8",
               keyPair.privateKey
             ));
-          
         })
         
         .then(pkcs8 => {
@@ -51,7 +50,6 @@ function createCryptoKeys() {
               "spki",
               keyPair.publicKey
             ));
-          
         })
         
         .then(pkcs8 => {
@@ -60,43 +58,10 @@ function createCryptoKeys() {
         })          
       ])
 
-    .then(values => {
-      document.getElementById("private-pem-text").value = values[0];
-      document.getElementById("public-pem-text").value = values[1];
-    });
-
-  })
-
-
-
-
-
-
-/*
-
-
-    .then(keyPair => {
-      // PrivateKeyをpkcs#8(秘密鍵)形式にExportする
-      return (subtle.exportKey(
-        "pkcs8",
-        keyPair.privateKey
-      ));
-    },
-        error => Promise.reject((`Error during exportkey: ${error}`))
-    )
-
-    .then(pkcs8 => {
-      // ArrayBufferを文字列にし
-      const pkcs8str = ab2str(pkcs8);
-      // Base64エンコードを行い64文字毎に改行を行い
-      const base64 = pac64(btoa(pkcs8str));
-      // ヘッダとフッタを追加
-      const pem = `-----BEGIN PRIVATE KEY-----\n${base64}\n-----END PRIVATE KEY-----`;
-
-      // Textareaに表示
-      document.getElementById("private-pem-text").value = pem;
-      return (pem);
+      .then(values => {
+        document.getElementById("private-pem-text").value = values[0];
+        document.getElementById("public-pem-text").value = values[1];
+      });
     })
-*/    
   );
 }
