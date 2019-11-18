@@ -1,6 +1,6 @@
 // WebCryptoのライブラリ
 let crypto = window.crypto || window.msCrypto;
-let subtle = crypto.subtle;
+let subtle = crypto.subtle || crypto.webkitSubtle;
 
 // アルゴリズム
 const signAlg = "RSASSA-PKCS1-v1_5";
